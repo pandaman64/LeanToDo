@@ -10,3 +10,8 @@ root = "Main"
 name = "leansqlite"
 git = "https://github.com/leanprover/leansqlite"
 rev = "main"
+
+[[require]]
+name = "verso"
+git = "https://github.com/leanprover/verso"
+rev = "v4.27.0"
