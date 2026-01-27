@@ -5,6 +5,11 @@ defaultTargets = ["leantodo"]
 [[lean_exe]]
 name = "leantodo"
 root = "Main"
+buildType = "debug"
+
+[[lean_lib]]
+name = "LeanToDo"
+buildType = "debug"
 
 [[require]]
 name = "leansqlite"
