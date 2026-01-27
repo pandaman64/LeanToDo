@@ -5,3 +5,8 @@ defaultTargets = ["leantodo"]
 [[lean_exe]]
 name = "leantodo"
 root = "Main"
+
+[[require]]
+name = "leansqlite"
+git = "https://github.com/leanprover/leansqlite"
+rev = "main"
