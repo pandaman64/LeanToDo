@@ -13,7 +13,7 @@ set_option autoImplicit false
 
 def renderTodo (todo : Todo) : Html :=
   {{
-    <li class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200">
+    <li class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200 transition hover:shadow-md hover:ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-500">
       <div class="flex items-center gap-2">
         <button
           type="button"
@@ -56,21 +56,28 @@ def renderTodo (todo : Todo) : Html :=
     </li>
   }}
 
-def render (app : App) : IO Html := do
-  let todos ← listTodos app.db
+def render (projectId : Int64) (app : App) : IO Html := do
+  let .some project ← LeanToDo.Model.getProject projectId app.db | throw <| IO.userError "Project not found"
+  let todos ← LeanToDo.Model.listTodosByProject projectId app.db
   return {{
     <html>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-        <title>"LeanToDo"</title>
+        <title>s!"LeanToDo - {project.name}"</title>
       </head>
       <body>
         <main class="min-h-screen bg-gray-50">
           <div class="max-w-2xl mx-auto px-4 py-10">
-            <header class="mb-6">
-              <h1 class="text-3xl font-semibold tracking-tight text-gray-900">"Todos"</h1>
+            <header class="mb-6 space-y-3">
+              <a
+                href="/"
+                class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                "← Back to projects"
+              </a>
+              <h1 class="text-3xl font-semibold tracking-tight text-gray-900">s!"Todos: {project.name}"</h1>
             </header>
 
             <ul class="flex flex-col gap-3">

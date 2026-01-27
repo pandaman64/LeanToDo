@@ -13,10 +13,15 @@ set_option autoImplicit false
 
 def renderProject (project : Project) : Html :=
   {{
-    <li class="rounded-2xl bg-white px-6 py-5 shadow-sm ring-1 ring-gray-200">
-      <div class="text-lg font-semibold leading-6 text-gray-900">
-        {{ project.name }}
-      </div>
+    <li>
+      <a
+        href=s!"/project/{project.id}"
+        class="block w-full rounded-2xl bg-white px-6 py-5 shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <div class="text-lg font-semibold leading-6 text-gray-900">
+          {{ project.name }}
+        </div>
+      </a>
     </li>
   }}
 

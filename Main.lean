@@ -4,24 +4,37 @@ import Std.Internal.Async
 
 import LeanToDo
 import LeanToDo.Pages.Index
+import LeanToDo.Pages.Project
 
 open Std.Internal.IO Async
 open Verso.Output (Html)
 open Verso.Output.Html
 
 open LeanToDo Model
+open LeanToDo.Http
+
+def route (app : App) (request : Request) : IO Response := do
+  let segments :=
+    (request.path.splitOn "/").filter (fun segment => segment != "") |>.toArray
+  match segments with
+  | #[] =>
+      let html ← LeanToDo.Pages.Index.render app
+      return Response.ofHtml html.asString
+  | #["project", idString] =>
+      match String.toInt? idString with
+      | .some id =>
+          let html ← LeanToDo.Pages.Project.render (Int64.ofInt id) app
+          return Response.ofHtml html.asString
+      | .none => return Response.ofHtml "Not Found" .not_found
+  | _ => return Response.ofHtml "Not Found" .not_found
 
 def runServer (app : App) : IO Unit := do
   let server ← TCP.Socket.Server.mk
   server.bind (Std.Net.SocketAddressV4.mk (.ofParts 127 0 0 1) 8080)
   server.listen 128
   IO.println "Server is running on port 8080"
-  let serverTask := LeanToDo.Http.serve server fun _request => do
-    return {
-      code := .ok,
-      contentType := "text/html",
-      body := (← LeanToDo.Pages.Index.render app).asString
-    }
+  let serverTask := LeanToDo.Http.serve server fun request => do
+    route app request
   (← serverTask.toIO).block
 
 def prepareDatabase (app : App) : IO Unit := do

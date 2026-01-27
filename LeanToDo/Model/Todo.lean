@@ -36,6 +36,14 @@ def listTodos (db : SQLite) : IO (Array Todo) := do
   let results ← db query!"SELECT id, project_id, title, completed FROM todos" as Todo
   results.toArray
 
+def listTodosByProject (projectId : Int64) (db : SQLite) : IO (Array Todo) := do
+  let results ← db query!"
+    SELECT id, project_id, title, completed
+    FROM todos
+    WHERE project_id = {projectId}
+  " as Todo
+  results.toArray
+
 def getTodo (id : Int64) (db : SQLite) : IO (Option Todo) := do
   let results ← db query!"SELECT id, project_id, title, completed FROM todos WHERE id = {id}" as Todo
   -- Why don't we have `results.atIdx? 0`?
