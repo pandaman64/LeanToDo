@@ -28,21 +28,28 @@ def prepareDatabase (app : App) : IO Unit := do
   db.exec "PRAGMA journal_mode=WAL"
   db.exec "PRAGMA synchronous=NORMAL"
   db.exec "PRAGMA busy_timeout=5000"
+  db.exec "PRAGMA foreign_keys=ON"
   db.exec "DROP TABLE IF EXISTS todos"
-  db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN)"
+  db.exec "DROP TABLE IF EXISTS projects"
+  db.exec "CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
+  db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, completed BOOLEAN, FOREIGN KEY(project_id) REFERENCES projects(id))"
+
+  let .some project ← createProject { name := "LeanToDo development" } db
+    | throw <| IO.userError "Failed to create project"
+  let projectId := project.id
 
   let newTodos : Array NewTodo := #[
-    { title := "Set up the database", completed := true },
-    { title := "Set up the server", completed := true },
-    { title := "Incorporate HTMX", completed := false },
-    { title := "Incorporate Tailwind CSS", completed := false },
-    { title := "Scaffold the HTML components", completed := false },
-    { title := "Create a new todo", completed := false },
-    { title := "Edit a todo", completed := false },
-    { title := "Delete a todo", completed := false },
-    { title := "Mark a todo as completed", completed := false },
-    { title := "Mark a todo as not completed", completed := false },
-    { title := "Delete a todo", completed := false },
+    { projectId, title := "Set up the database", completed := true },
+    { projectId, title := "Set up the server", completed := true },
+    { projectId, title := "Incorporate HTMX", completed := false },
+    { projectId, title := "Incorporate Tailwind CSS", completed := false },
+    { projectId, title := "Scaffold the HTML components", completed := false },
+    { projectId, title := "Create a new todo", completed := false },
+    { projectId, title := "Edit a todo", completed := false },
+    { projectId, title := "Delete a todo", completed := false },
+    { projectId, title := "Mark a todo as completed", completed := false },
+    { projectId, title := "Mark a todo as not completed", completed := false },
+    { projectId, title := "Delete a todo", completed := false },
   ]
   for todo in newTodos do
     let .some todo ← createTodo todo db | continue
