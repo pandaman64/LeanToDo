@@ -3,6 +3,7 @@ import Verso
 import Std.Internal.Async
 
 import LeanToDo
+import LeanToDo.Pages.Index
 
 open Std.Internal.IO Async
 open Verso.Output (Html)
@@ -19,7 +20,7 @@ def runServer (app : App) : IO Unit := do
     return {
       code := .ok,
       contentType := "text/html",
-      body := (← Pages.Project.render app).asString
+      body := (← LeanToDo.Pages.Index.render app).asString
     }
   (← serverTask.toIO).block
 
