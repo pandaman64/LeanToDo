@@ -1,7 +1,6 @@
 import SQLite
 import Verso
 import LeanToDo
-
 import Std.Internal.Async
 
 open Std.Internal.IO Async
@@ -9,19 +8,7 @@ open Std.Internal.IO Async
 open Verso.Output (Html)
 open Verso.Output.Html
 
-structure Todo where
-  id : Int64
-  title : String
-  completed : Bool
-deriving Repr
-
-instance : SQLite.Row Todo where
-  read := do
-    return {
-      id := ← SQLite.Row.read,
-      title := ← SQLite.Row.read,
-      completed := (← SQLite.Row.read) != (0 : Int64)
-    }
+open LeanToDo.Model
 
 def renderTodo (todo : Todo) : Html :=
   {{
@@ -31,53 +18,11 @@ def renderTodo (todo : Todo) : Html :=
     </div>
   }}
 
--- def main : IO Unit := do
---   let db ← SQLite.open "test.db"
---   db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy groceries', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new phone', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new car', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new house', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new boat', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new plane', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new train', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new ship', FALSE)"
---   db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new bike', FALSE)"
-
---   IO.println "----- After insert -----"
---   let selectStmt ← db.prepare "SELECT * FROM todos"
---   for todo in selectStmt.resultsAs Todo do
---     IO.println s!"{todo.id} {todo.title} {todo.completed}"
-
---   db.exec "UPDATE todos SET completed = TRUE WHERE id = 4"
-
---   IO.println "----- After update -----"
---   let selectStmt ← db.prepare "SELECT * FROM todos"
---   for todo in selectStmt.resultsAs Todo do
---     IO.println s!"{todo.id} {todo.title} {todo.completed}"
-
---   let todos ← (selectStmt.resultsAs Todo).toArray
---   let html := {{
---     <html>
---       <body>
---         <h1>"Todo List"</h1>
---         <ul>
---           {{ todos.map ({{<li>{{renderTodo ·}}</li>}}) }}
---         </ul>
---       </body>
---     </html>
---   }}
---   IO.println html.asString
-
---   db.exec "DROP TABLE todos"
-
 structure App where
   db : SQLite
 
 def generateHtml (app : App) : IO Html := do
-  let db := app.db
-  let selectStmt ← db.prepare "SELECT id, title, completed FROM todos"
-  let todos ← (selectStmt.resultsAs Todo).toArray
+  let todos ← listTodos app.db
   return {{
     <html>
       <body>
@@ -105,13 +50,28 @@ def runServer (app : App) : IO Unit := do
 
 def prepareDatabase (app : App) : IO Unit := do
   let db := app.db
+  db.exec "PRAGMA journal_mode=WAL"
+  db.exec "PRAGMA synchronous=NORMAL"
+  db.exec "PRAGMA busy_timeout=5000"
+  db.exec "DROP TABLE IF EXISTS todos"
   db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy groceries', FALSE)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new phone', TRUE)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new car', FALSE)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new house', FALSE)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new boat', TRUE)"
-  db.exec "INSERT INTO todos (title, completed) VALUES ('Buy a new plane', FALSE)"
+
+  let newTodos : Array NewTodo := #[
+    { title := "Set up the database", completed := true },
+    { title := "Set up the server", completed := true },
+    { title := "Incorporate HTMX", completed := false },
+    { title := "Incorporate Tailwind CSS", completed := false },
+    { title := "Scaffold the HTML components", completed := false },
+    { title := "Create a new todo", completed := false },
+    { title := "Edit a todo", completed := false },
+    { title := "Delete a todo", completed := false },
+    { title := "Mark a todo as completed", completed := false },
+    { title := "Mark a todo as not completed", completed := false },
+    { title := "Delete a todo", completed := false },
+  ]
+  for todo in newTodos do
+    let .some todo ← createTodo todo db | continue
+    IO.println s!"Created todo: {todo.id} {todo.title} {todo.completed}"
 
 def main : IO Unit := do
   let app : App := { db := ← SQLite.open "test.db" }
