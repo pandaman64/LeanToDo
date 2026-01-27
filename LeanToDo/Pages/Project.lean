@@ -32,7 +32,7 @@ def render (app : App) : IO Html := do
       <body>
         <h1>"Todos"</h1>
         <ul>
-          {{ todos.map ({{<li>{{renderTodo ·}}</li>}}) }}
+          {{ todos.map (renderTodo ·) }}
         </ul>
       </body>
     </html>
