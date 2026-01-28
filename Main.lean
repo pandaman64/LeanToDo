@@ -139,7 +139,7 @@ def route (app : App) (request : Request) : IO Response := do
 
 def runServer (app : App) : IO Unit := do
   let server ← TCP.Socket.Server.mk
-  server.bind (Std.Net.SocketAddressV4.mk (.ofParts 127 0 0 1) 8080)
+  server.bind (Std.Net.SocketAddressV4.mk (.ofParts 0 0 0 0) 8080)
   server.listen 128
   IO.println "Server is running on port 8080"
   let serverTask := LeanToDo.Http.serve server fun request => do

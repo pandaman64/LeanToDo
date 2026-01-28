@@ -1,0 +1,10 @@
+# flyctl launch added from .gitignore
+.lake
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# flyctl launch added from .jj/.gitignore
+.jj/*
+
+fly.toml
