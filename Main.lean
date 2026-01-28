@@ -16,6 +16,35 @@ open Verso.Output.Html
 open LeanToDo Model
 open LeanToDo.Http
 
+def setupConnection (db : SQLite) : IO Unit := do
+  db.exec "PRAGMA journal_mode=WAL"
+  db.exec "PRAGMA synchronous=NORMAL"
+  db.exec "PRAGMA busy_timeout=5000"
+  db.exec "PRAGMA foreign_keys=ON"
+  db.exec "CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
+  db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, completed BOOLEAN, FOREIGN KEY(project_id) REFERENCES projects(id))"
+
+def seedDatabase (db : SQLite) : IO Unit := do
+  db.exec "DROP TABLE IF EXISTS todos"
+  db.exec "DROP TABLE IF EXISTS projects"
+  db.exec "CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
+  db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, completed BOOLEAN, FOREIGN KEY(project_id) REFERENCES projects(id))"
+
+  let .some project ← createProject { name := "LeanToDo development" } db
+    | throw <| IO.userError "Failed to create project"
+  let projectId := project.id
+
+  let newTodos : Array NewTodo := #[
+    { projectId, title := "Set up database", completed := true },
+    { projectId, title := "Set up HTTP server", completed := true },
+    { projectId, title := "Add HTMX and Tailwind CSS", completed := false },
+    { projectId, title := "Create a new todo", completed := false },
+    { projectId, title := "Mark/unmark a todo as completed", completed := false },
+    { projectId, title := "Delete a todo", completed := false },
+  ]
+  for todo in newTodos do
+    let .some _ ← createTodo todo db | continue
+
 def parseFormData (s : String) : HashMap String String :=
   HashMap.ofArray $
     s.split "&"
@@ -95,6 +124,9 @@ def route (app : App) (request : Request) : IO Response := do
           let html ← LeanToDo.Pages.Project.render (Int64.ofInt projectId) app
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
+  | "POST", #["seed"] =>
+      seedDatabase app.db
+      return Response.ofHtml "" .ok
   | "DELETE", #["todos", idString] =>
       match String.toInt? idString with
       | .some id =>
@@ -118,34 +150,7 @@ def runServer (app : App) : IO Unit := do
       return Response.ofHtml "Internal Server Error" .internal_server_error
   (← serverTask.toIO).block
 
-def prepareDatabase (app : App) : IO Unit := do
-  let db := app.db
-  db.exec "PRAGMA journal_mode=WAL"
-  db.exec "PRAGMA synchronous=NORMAL"
-  db.exec "PRAGMA busy_timeout=5000"
-  db.exec "PRAGMA foreign_keys=ON"
-  db.exec "DROP TABLE IF EXISTS todos"
-  db.exec "DROP TABLE IF EXISTS projects"
-  db.exec "CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
-  db.exec "CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER, title TEXT, completed BOOLEAN, FOREIGN KEY(project_id) REFERENCES projects(id))"
-
-  let .some project ← createProject { name := "LeanToDo development" } db
-    | throw <| IO.userError "Failed to create project"
-  let projectId := project.id
-
-  let newTodos : Array NewTodo := #[
-    { projectId, title := "Set up database", completed := true },
-    { projectId, title := "Set up HTTP server", completed := true },
-    { projectId, title := "Add HTMX and Tailwind CSS", completed := false },
-    { projectId, title := "Create a new todo", completed := false },
-    { projectId, title := "Mark/unmark a todo as completed", completed := false },
-    { projectId, title := "Delete a todo", completed := false },
-  ]
-  for todo in newTodos do
-    let .some todo ← createTodo todo db | continue
-    IO.println s!"Created todo: {todo.id} {todo.title} {todo.completed}"
-
 def main : IO Unit := do
   let app : App := { db := ← SQLite.open "test.db" }
-  prepareDatabase app
+  setupConnection app.db
   runServer app
