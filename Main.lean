@@ -33,6 +33,9 @@ def route (app : App) (request : Request) : IO Response := do
   | "GET", #[] =>
       let html ← LeanToDo.Pages.Index.render app
       return Response.ofHtml html.asString
+  | "GET", #["project", "new"] =>
+      let html := LeanToDo.Pages.Index.renderNewProjectForm true
+      return Response.ofHtml html.asString
   | "GET", #["project", idString, "new"] =>
       match String.toInt? idString with
       | .some id =>
@@ -45,6 +48,15 @@ def route (app : App) (request : Request) : IO Response := do
           let html ← LeanToDo.Pages.Project.render (Int64.ofInt id) app
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
+  | "POST", #["project", "new"] =>
+      let formData := parseFormData request.body
+      let .some name := formData.get? "name"
+        | throw <| IO.userError "Invalid name"
+      let newProject : NewProject := { name := name }
+      let .some _ ← createProject newProject app.db
+        | return Response.ofHtml "Not Found" .not_found
+      let html ← LeanToDo.Pages.Index.render app
+      return Response.ofHtml html.asString
   | "POST", #["todos", idString] =>
       match String.toInt? idString with
       | .some id =>
