@@ -9,16 +9,19 @@ namespace LeanToDo.Http
 inductive StatusCode where
   | ok
   | not_found
+  | internal_server_error
 
 def StatusCode.asNat (code : StatusCode) : Nat :=
   match code with
   | .ok => 200
   | .not_found => 404
+  | .internal_server_error => 500
 
 def StatusCode.asString (code : StatusCode) : String :=
   match code with
   | .ok => "OK"
   | .not_found => "Not Found"
+  | .internal_server_error => "Internal Server Error"
 
 structure Request where
   method : String
@@ -34,12 +37,6 @@ def Response.ofHtml (html : String) (code : StatusCode := .ok) : Response := {
   code := code,
   contentType := "text/html",
   body := html
-}
-
-def Response.ofJson (json : String) (code : StatusCode := .ok) : Response := {
-  code := code,
-  contentType := "application/json",
-  body := json
 }
 
 def readRequest (client : TCP.Socket.Client) : Async Request := do

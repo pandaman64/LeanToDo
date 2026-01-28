@@ -54,7 +54,7 @@ def route (app : App) (request : Request) : IO Response := do
         | throw <| IO.userError "Invalid name"
       let newProject : NewProject := { name := name }
       let .some _ ← createProject newProject app.db
-        | return Response.ofHtml "Not Found" .not_found
+        | throw <| IO.userError "Failed to create project"
       let html ← LeanToDo.Pages.Index.render app
       return Response.ofHtml html.asString
   | "POST", #["todos", idString] =>
@@ -91,7 +91,7 @@ def route (app : App) (request : Request) : IO Response := do
             completed := false
           }
           let .some _ ← createTodo newTodo app.db
-            | return Response.ofHtml "Not Found" .not_found
+            | throw <| IO.userError "Failed to create todo"
           let html ← LeanToDo.Pages.Project.render (Int64.ofInt projectId) app
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
@@ -111,7 +111,11 @@ def runServer (app : App) : IO Unit := do
   server.listen 128
   IO.println "Server is running on port 8080"
   let serverTask := LeanToDo.Http.serve server fun request => do
-    route app request
+    try
+      route app request
+    catch e =>
+      IO.eprintln s!"Error: {e}"
+      return Response.ofHtml "Internal Server Error" .internal_server_error
   (← serverTask.toIO).block
 
 def prepareDatabase (app : App) : IO Unit := do

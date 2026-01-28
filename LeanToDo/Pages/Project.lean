@@ -70,6 +70,7 @@ def renderNewTodoForm (projectId : Int64) (edit : Bool) : Html :=
             name="title"
             type="text"
             placeholder="Add a new todo"
+            autofocus
             class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
           />
         </div>
