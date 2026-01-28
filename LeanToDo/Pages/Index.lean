@@ -102,6 +102,9 @@ def render (app : App) : IO Html := do
           <div class="max-w-2xl mx-auto px-4 py-10">
             <header class="mb-6">
               <h1 class="text-3xl font-semibold tracking-tight text-gray-900">"Projects"</h1>
+              <p class="text-sm text-gray-500">
+                "Everything here is visible to everyone. Avoid entering anything private or sensitive."
+              </p>
             </header>
 
             <ul class="flex flex-col gap-3">
