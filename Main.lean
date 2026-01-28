@@ -33,6 +33,12 @@ def route (app : App) (request : Request) : IO Response := do
   | "GET", #[] =>
       let html ← LeanToDo.Pages.Index.render app
       return Response.ofHtml html.asString
+  | "GET", #["project", idString, "new"] =>
+      match String.toInt? idString with
+      | .some id =>
+          let html := LeanToDo.Pages.Project.renderNewTodoForm id.toInt64 true
+          return Response.ofHtml html.asString
+      | .none => return Response.ofHtml "Not Found" .not_found
   | "GET", #["project", idString] =>
       match String.toInt? idString with
       | .some id =>
@@ -59,6 +65,22 @@ def route (app : App) (request : Request) : IO Response := do
             | return Response.ofHtml "Not Found" .not_found
           updateTodo todo app.db
           let html := LeanToDo.Pages.Project.renderTodo todo
+          return Response.ofHtml html.asString
+      | .none => return Response.ofHtml "Not Found" .not_found
+  | "POST", #["project", idString, "new"] =>
+      match String.toInt? idString with
+      | .some projectId =>
+          let formData := parseFormData request.body
+          let .some title := formData.get? "title"
+            | throw <| IO.userError "Invalid title"
+          let newTodo : NewTodo := {
+            projectId := Int64.ofInt projectId
+            title := title
+            completed := false
+          }
+          let .some _ ← createTodo newTodo app.db
+            | return Response.ofHtml "Not Found" .not_found
+          let html ← LeanToDo.Pages.Project.render (Int64.ofInt projectId) app
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
   | "DELETE", #["todos", idString] =>

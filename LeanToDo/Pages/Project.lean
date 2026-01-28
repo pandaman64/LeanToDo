@@ -59,6 +59,67 @@ def renderTodo (todo : Todo) : Html :=
     </li>
   }}
 
+def renderNewTodoForm (projectId : Int64) (edit : Bool) : Html :=
+  let midItem : Html :=
+    if edit then
+      {{
+        <div class="flex-1">
+          <label for="new-todo-title" class="sr-only">"New todo"</label>
+          <input
+            id="new-todo-title"
+            name="title"
+            type="text"
+            placeholder="Add a new todo"
+            class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
+        </div>
+      }}
+    else
+      {{
+        <div class="flex-1">
+          <div class="text-sm font-semibold text-gray-900">"Add a new todo"</div>
+          <div class="text-xs text-gray-400">"Capture a task for this project"</div>
+        </div>
+      }}
+  {{
+    <li
+      class="rounded-xl border-2 border-dashed border-gray-200 bg-white px-3 py-3 text-gray-500 transition hover:border-indigo-300 hover:text-indigo-600"
+      {{
+        -- Enable hx-get only when not editing
+        if !edit then
+          #[("hx-get", s!"/project/{projectId}/new"), ("hx-swap", "outerHTML")]
+        else
+          #[]
+      }}
+    >
+      <form
+        class="flex w-full items-center gap-3 text-left"
+        hx-post=s!"/project/{projectId}/new"
+        hx-target="body"
+        hx-swap="outerHTML"
+      >
+        <span class="inline-flex size-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+          "+"
+        </span>
+        {{ midItem }}
+        {{
+          if edit then
+            {{
+              <input type="hidden" name="projectId" value=s!"{projectId}" />
+              <button
+                type="submit"
+                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+              >
+                "Add"
+              </button>
+            }}
+          else
+            .empty
+        }}
+      </form>
+    </li>
+  }}
+
 def render (projectId : Int64) (app : App) : IO Html := do
   let .some project ← LeanToDo.Model.getProject projectId app.db | throw <| IO.userError "Project not found"
   let todos ← LeanToDo.Model.listTodosByProject projectId app.db
@@ -86,6 +147,7 @@ def render (projectId : Int64) (app : App) : IO Html := do
 
             <ul class="flex flex-col gap-3">
               {{ todos.map (renderTodo ·) }}
+              {{ renderNewTodoForm projectId false }}
             </ul>
           </div>
         </main>
