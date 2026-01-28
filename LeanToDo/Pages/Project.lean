@@ -13,7 +13,7 @@ set_option autoImplicit false
 
 def renderTodo (todo : Todo) : Html :=
   {{
-    <li class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200 transition hover:shadow-md hover:ring-gray-300">
+    <li id=s!"todo-{todo.id}" class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200 transition hover:shadow-md hover:ring-gray-300">
       <div class="flex items-center gap-2">
         <button
           type="button"
@@ -25,7 +25,7 @@ def renderTodo (todo : Todo) : Html :=
           }}
           aria-label=s!"Toggle completed for todo {todo.id}"
           hx-post=s!"/todos/{todo.id}"
-          hx-vals=s!"\{\"projectId\": {todo.projectId}, \"title\": \"{todo.title}\", \"completed\": {!todo.completed}}"
+          hx-vals={{ { todo with completed := !todo.completed } |> Lean.toJson |> toString }}
           hx-target="closest li"
           hx-swap="outerHTML"
         >

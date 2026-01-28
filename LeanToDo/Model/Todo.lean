@@ -18,6 +18,14 @@ instance : SQLite.Row Todo where
       completed := (← SQLite.Row.read) != (0 : Int64)
     }
 
+instance : Lean.ToJson Todo where
+  toJson todo := .mkObj [
+    ("id", .num todo.id.toInt),
+    ("projectId", .num todo.projectId.toInt),
+    ("title", .str todo.title),
+    ("completed", .bool todo.completed),
+  ]
+
 structure NewTodo where
   projectId : Int64
   title : String
