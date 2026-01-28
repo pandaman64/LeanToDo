@@ -118,16 +118,11 @@ def prepareDatabase (app : App) : IO Unit := do
   let projectId := project.id
 
   let newTodos : Array NewTodo := #[
-    { projectId, title := "Set up the database", completed := true },
-    { projectId, title := "Set up the server", completed := true },
-    { projectId, title := "Incorporate HTMX", completed := false },
-    { projectId, title := "Incorporate Tailwind CSS", completed := false },
-    { projectId, title := "Scaffold the HTML components", completed := false },
+    { projectId, title := "Set up database", completed := true },
+    { projectId, title := "Set up HTTP server", completed := true },
+    { projectId, title := "Add HTMX and Tailwind CSS", completed := false },
     { projectId, title := "Create a new todo", completed := false },
-    { projectId, title := "Edit a todo", completed := false },
-    { projectId, title := "Delete a todo", completed := false },
-    { projectId, title := "Mark a todo as completed", completed := false },
-    { projectId, title := "Mark a todo as not completed", completed := false },
+    { projectId, title := "Mark/unmark a todo as completed", completed := false },
     { projectId, title := "Delete a todo", completed := false },
   ]
   for todo in newTodos do
