@@ -49,8 +49,9 @@ def renderTodo (todo : Todo) : Html :=
           type="button"
           class="inline-flex size-9 items-center justify-center rounded-full bg-white text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
           aria-label=s!"Delete todo {todo.id}"
-          data-todo-id=s!"{todo.id}"
-          data-action="delete"
+          hx-delete=s!"/todos/{todo.id}"
+          hx-target="closest li"
+          hx-swap="outerHTML swap:100ms"
         >
           <span class="text-sm font-semibold">"×"</span>
         </button>

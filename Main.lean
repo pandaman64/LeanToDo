@@ -61,6 +61,14 @@ def route (app : App) (request : Request) : IO Response := do
           let html := LeanToDo.Pages.Project.renderTodo todo
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
+  | "DELETE", #["todos", idString] =>
+      match String.toInt? idString with
+      | .some id =>
+          let .some todo ← getTodo (Int64.ofInt id) app.db
+            | return Response.ofHtml "Not Found" .not_found
+          deleteTodo todo.id app.db
+          return Response.ofHtml "" .ok
+      | .none => return Response.ofHtml "Not Found" .not_found
   | _, _ => return Response.ofHtml "Not Found" .not_found
 
 def runServer (app : App) : IO Unit := do
