@@ -13,7 +13,7 @@ set_option autoImplicit false
 
 def renderTodo (todo : Todo) : Html :=
   {{
-    <li class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200 transition hover:shadow-md hover:ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-500">
+    <li class="rounded-xl bg-white px-3 py-3 shadow-sm ring-1 ring-gray-200 transition hover:shadow-md hover:ring-gray-300">
       <div class="flex items-center gap-2">
         <button
           type="button"
@@ -24,8 +24,10 @@ def renderTodo (todo : Todo) : Html :=
               "inline-flex size-9 items-center justify-center rounded-full bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100"
           }}
           aria-label=s!"Toggle completed for todo {todo.id}"
-          data-todo-id=s!"{todo.id}"
-          data-action="toggle-complete"
+          hx-post=s!"/todos/{todo.id}"
+          hx-vals=s!"\{\"projectId\": {todo.projectId}, \"title\": \"{todo.title}\", \"completed\": {!todo.completed}}"
+          hx-target="closest li"
+          hx-swap="outerHTML"
         >
           <span class="text-sm font-semibold">
             {{ if todo.completed then "✓" else "○" }}
@@ -64,6 +66,7 @@ def render (projectId : Int64) (app : App) : IO Html := do
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
         <title>s!"LeanToDo - {project.name}"</title>
       </head>

@@ -1,32 +1,67 @@
 import SQLite
 import Verso
 import Std.Internal.Async
+import Std.Data.HashMap
 
 import LeanToDo
 import LeanToDo.Pages.Index
 import LeanToDo.Pages.Project
 
 open Std.Internal.IO Async
+open Std (HashMap)
+open System.Uri.UriEscape (decodeUri)
 open Verso.Output (Html)
 open Verso.Output.Html
 
 open LeanToDo Model
 open LeanToDo.Http
 
+def parseFormData (s : String) : HashMap String String :=
+  HashMap.ofArray $
+    s.split "&"
+    |>.filterMap (fun kv =>
+      match kv.split "=" |>.toArray with
+      | #[k, v] => some (decodeUri k.copy, decodeUri v.copy)
+      | #[k]    => some (decodeUri k.copy, "")
+      | _      => none)
+    |>.toArray
+
 def route (app : App) (request : Request) : IO Response := do
   let segments :=
     (request.path.splitOn "/").filter (fun segment => segment != "") |>.toArray
-  match segments with
-  | #[] =>
+  match request.method, segments with
+  | "GET", #[] =>
       let html ← LeanToDo.Pages.Index.render app
       return Response.ofHtml html.asString
-  | #["project", idString] =>
+  | "GET", #["project", idString] =>
       match String.toInt? idString with
       | .some id =>
           let html ← LeanToDo.Pages.Project.render (Int64.ofInt id) app
           return Response.ofHtml html.asString
       | .none => return Response.ofHtml "Not Found" .not_found
-  | _ => return Response.ofHtml "Not Found" .not_found
+  | "POST", #["todos", idString] =>
+      match String.toInt? idString with
+      | .some id =>
+          let formData := parseFormData request.body
+          let .some projectId := formData.get? "projectId" >>= String.toInt?
+            | throw <| IO.userError "Invalid projectId"
+          let .some title := formData.get? "title"
+            | throw <| IO.userError "Invalid title"
+          let .some completed := formData.get? "completed"
+            | throw <| IO.userError "Invalid completed"
+          let todo : Todo := {
+            id := Int64.ofInt id,
+            projectId := Int64.ofInt projectId,
+            title := title,
+            completed := completed == "true",
+          }
+          let .some _ ← getTodo todo.id app.db
+            | return Response.ofHtml "Not Found" .not_found
+          updateTodo todo app.db
+          let html := LeanToDo.Pages.Project.renderTodo todo
+          return Response.ofHtml html.asString
+      | .none => return Response.ofHtml "Not Found" .not_found
+  | _, _ => return Response.ofHtml "Not Found" .not_found
 
 def runServer (app : App) : IO Unit := do
   let server ← TCP.Socket.Server.mk
