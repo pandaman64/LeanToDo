@@ -93,5 +93,3 @@ def render (projectId : Int64) (app : App) : IO Html := do
   }}
 
 end LeanToDo.Pages.Project
-
--- 🗑
