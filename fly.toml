@@ -3,8 +3,8 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'leantodo-shy-dawn-5450'
-primary_region = 'nrt'
+app = 'leantodo'
+primary_region = 'lax'
 
 [http_service]
   internal_port = 8080
