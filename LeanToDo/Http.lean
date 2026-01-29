@@ -40,31 +40,70 @@ def Response.ofHtml (html : String) (code : StatusCode := .ok) : Response := {
 }
 
 def readRequest (client : TCP.Socket.Client) : Async Request := do
-  let message ← client.recv? 8096
-  match message.bind String.fromUTF8? with
-  | .none => throw (.userError "Failed to read request")
-  | .some request =>
-    let mut method : Option String := .none
-    let mut path : Option String := .none
-    let mut body : Option String := .none
-    let mut parsedHeaders := false
+  let mut buffer := ""
+  let mut headersDone := false
+  while !headersDone do
+    let chunk ← client.recv? 8192
+    match chunk.bind String.fromUTF8? with
+    | .none => throw (.userError "Failed to read request")
+    | .some str =>
+      buffer := buffer ++ str
+      match (buffer.split "\r\n\r\n").toList with
+      | _ :: _ :: _ => headersDone := true
+      | _ => pure ()
 
-    for line in request.split "\r\n" do
-      if parsedHeaders then
-        body := line.copy
-        break
-      else if method.isNone then
-        let values := line.split " " |>.toArray
-        method := values[0]!.copy
-        path := values[1]!.copy
-      else if line == "" then
-        parsedHeaders := true
+  let parts := (buffer.split "\r\n\r\n").toList.map (fun s => s.toString)
+  let header :=
+    match parts with
+    | [] => ""
+    | h :: _ => h
+  let bodyStart :=
+    match parts with
+    | [] => ""
+    | _ :: rest => String.intercalate "\r\n\r\n" rest
 
-    return {
-      method := method.get!,
-      path := path.get!,
-      body := body.getD "",
-    }
+  IO.eprintln s!"request headers: {String.quote header}"
+  IO.eprintln s!"request body start: {String.quote bodyStart}"
+  let mut method : Option String := .none
+  let mut path : Option String := .none
+  let mut contentLength : Option Nat := .none
+
+  for lineSlice in header.split "\r\n" do
+    let line := lineSlice.toString
+    if method.isNone then
+      let values := line.split " " |>.toArray
+      method := values[0]!.copy
+      path := values[1]!.copy
+    else if line.toLower.startsWith "content-length:" then
+      let value := line.toLower.drop "content-length:".length |>.trimAscii
+      match value.toNat? with
+      | .some n => contentLength := .some n
+      | .none => throw (.userError "Invalid Content-Length")
+
+  let mut body := ""
+  match contentLength with
+  | .none => body := ""
+  | .some len =>
+    body := bodyStart
+    let mut remaining := if body.length >= len then 0 else len - body.length
+    while remaining > 0 do
+      let chunk ← client.recv? 8192
+      match chunk.bind String.fromUTF8? with
+      | .none => throw (.userError "Failed to read request body")
+      | .some str =>
+        body := body ++ str
+        remaining := if body.length >= len then 0 else len - body.length
+    let rawPos : String.Pos.Raw := ⟨len⟩
+    if h : rawPos.IsValid body then
+      body := body.sliceTo ⟨rawPos, h⟩ |>.toString
+    else
+      throw (.userError "Invalid Content-Length")
+
+  return {
+    method := method.get!,
+    path := path.get!,
+    body := body,
+  }
 
 def writeResponse (client : TCP.Socket.Client) (response : Response) : Async Unit := do
   let response :=

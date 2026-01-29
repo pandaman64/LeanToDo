@@ -57,7 +57,11 @@ def parseFormData (s : String) : HashMap String String :=
 
 def route (app : App) (request : Request) : IO Response := do
   let segments :=
-    (request.path.splitOn "/").filter (fun segment => segment != "") |>.toArray
+    request.path.split "/"
+    |>.map (·.copy)
+    |>.filter (· != "")
+    |>.toArray
+  IO.eprintln s!"{request.method} {request.path} {request.body}"
   match request.method, segments with
   | "GET", #[] =>
       let html ← LeanToDo.Pages.Index.render app
