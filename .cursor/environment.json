@@ -1,0 +1,21 @@
+{
+  "name": "LeanToDo",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "user": "ubuntu",
+  "install": "lake build",
+  "terminals": [
+    {
+      "name": "server",
+      "command": "lake exe leantodo"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web server",
+      "port": 8080
+    }
+  ]
+}
