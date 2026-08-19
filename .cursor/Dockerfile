@@ -21,11 +21,10 @@ RUN useradd --create-home --shell /bin/bash ubuntu \
 USER ubuntu
 WORKDIR /home/ubuntu
 
-# Install elan (the Lean toolchain manager) and pre-warm the toolchain pinned
-# by lean-toolchain. elan still auto-installs a different toolchain on demand
-# if the repository changes lean-toolchain later.
+# Install elan (the Lean toolchain manager). No toolchain is pinned here: elan
+# reads lean-toolchain and installs the right toolchain on demand during the
+# install step, so this image stays correct across toolchain upgrades.
 ENV ELAN_HOME=/home/ubuntu/.elan
 ENV PATH="/home/ubuntu/.elan/bin:${PATH}"
 RUN curl -sSf https://elan.lean-lang.org/elan-init.sh \
-    | sh -s -- -y --default-toolchain leanprover/lean4:v4.27.0 \
-  && elan default leanprover/lean4:v4.27.0
+    | sh -s -- -y --default-toolchain none
